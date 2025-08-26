@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Note Corner Detector
+Note Corner Detector - OpenCV Version
 
-This script detects corners in note paper images for perspective correction
-and grid analysis. It uses various computer vision techniques to identify
-the four corners of squared note paper.
+This script detects corners in note paper images using analytical computer vision
+techniques with OpenCV. It provides robust corner detection without external API dependencies.
 """
 
 import cv2
@@ -14,10 +13,10 @@ import argparse
 import os
 
 
-class NoteCornerDetector:
+class NoteCornerDetectorOpenCV:
     def __init__(self, debug_mode=False):
         """
-        Initialize the corner detector.
+        Initialize the OpenCV-based corner detector.
         
         Args:
             debug_mode (bool): Enable debug output and visualization
@@ -94,7 +93,7 @@ class NoteCornerDetector:
         )
         
         if corners is not None:
-            corners = np.int0(corners)
+            corners = np.int32(corners)
             return corners.reshape(-1, 2)
         else:
             return np.array([])
@@ -141,6 +140,70 @@ class NoteCornerDetector:
         
         return np.array([])
     
+    def detect_corners_edges(self, image):
+        """
+        Detect corners using edge detection and line intersection.
+        
+        Args:
+            image: Preprocessed grayscale image
+            
+        Returns:
+            Array of corner coordinates
+        """
+        # Apply Canny edge detection
+        edges = cv2.Canny(image, 50, 150)
+        
+        # Apply morphological operations to connect edges
+        kernel = np.ones((3, 3), np.uint8)
+        edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+        
+        # Find lines using Hough Line Transform
+        lines = cv2.HoughLines(edges, 1, np.pi/180, threshold=100)
+        
+        if lines is None:
+            return np.array([])
+        
+        # Separate horizontal and vertical lines
+        horizontal_lines = []
+        vertical_lines = []
+        
+        for line in lines:
+            rho, theta = line[0]
+            angle_deg = np.degrees(theta)
+            
+            # Check if line is approximately horizontal (0° or 180°)
+            if abs(angle_deg) < 10 or abs(angle_deg - 180) < 10:
+                horizontal_lines.append((rho, theta))
+            # Check if line is approximately vertical (90°)
+            elif abs(angle_deg - 90) < 10:
+                vertical_lines.append((rho, theta))
+        
+        # Find intersections of horizontal and vertical lines
+        corners = []
+        for h_line in horizontal_lines[:2]:  # Use top 2 horizontal lines
+            for v_line in vertical_lines[:2]:  # Use top 2 vertical lines
+                # Calculate intersection point
+                h_rho, h_theta = h_line
+                v_rho, v_theta = v_line
+                
+                # Convert polar to Cartesian coordinates
+                h_a = np.cos(h_theta)
+                h_b = np.sin(h_theta)
+                v_a = np.cos(v_theta)
+                v_b = np.sin(v_theta)
+                
+                # Solve intersection: h_a*x + h_b*y = h_rho, v_a*x + v_b*y = v_rho
+                det = h_a * v_b - h_b * v_a
+                if abs(det) > 1e-6:  # Check if lines are not parallel
+                    x = (h_rho * v_b - h_b * v_rho) / det
+                    y = (h_a * v_rho - h_rho * v_a) / det
+                    
+                    # Check if intersection is within image bounds
+                    if 0 <= x < image.shape[1] and 0 <= y < image.shape[0]:
+                        corners.append([int(x), int(y)])
+        
+        return np.array(corners)
+    
     def order_corners(self, corners):
         """
         Order corners in clockwise order starting from top-left.
@@ -176,13 +239,13 @@ class NoteCornerDetector:
     
     def detect_grid_corners(self, image):
         """
-        Detect corners specifically for grid/note paper.
+        Detect corners using multiple OpenCV-based approaches.
         
         Args:
             image: Input RGB image
             
         Returns:
-            Ordered array of 4 corner coordinates
+            Tuple of (corners array, method description)
         """
         # Preprocess image
         preprocessed = self.preprocess_image(image)
@@ -190,40 +253,58 @@ class NoteCornerDetector:
         if self.debug_mode:
             print("Preprocessing completed")
         
-        # Try Harris corner detection first
+        # Try multiple detection methods
+        methods_results = []
+        
+        # Method 1: Harris corner detection
         harris_corners = self.detect_corners_harris(preprocessed)
+        methods_results.append(("harris", harris_corners))
         
         if self.debug_mode:
             print(f"Harris corners detected: {len(harris_corners)}")
         
-        # Try contour-based detection
+        # Method 2: Contour-based detection
         contour_corners = self.detect_corners_contours(preprocessed)
+        methods_results.append(("contour", contour_corners))
         
         if self.debug_mode:
             print(f"Contour corners detected: {len(contour_corners)}")
         
-        # Use the method that found exactly 4 corners
-        if len(contour_corners) == 4:
-            corners = contour_corners
-            method = "contour"
-        elif len(harris_corners) >= 4:
-            # Select the 4 corners with highest response
-            corners = harris_corners[:4]
-            method = "harris"
-        else:
-            # Fallback: use all detected corners
-            corners = np.vstack([harris_corners, contour_corners]) if len(harris_corners) > 0 and len(contour_corners) > 0 else np.vstack([harris_corners]) if len(harris_corners) > 0 else contour_corners
-            method = "combined"
+        # Method 3: Edge-based detection
+        edge_corners = self.detect_corners_edges(preprocessed)
+        methods_results.append(("edge", edge_corners))
         
         if self.debug_mode:
-            print(f"Using {method} method with {len(corners)} corners")
+            print(f"Edge-based corners detected: {len(edge_corners)}")
+        
+        # Select the best method that found exactly 4 corners
+        best_corners = np.array([])
+        best_method = "none"
+        
+        for method_name, corners in methods_results:
+            if len(corners) == 4:
+                best_corners = corners
+                best_method = method_name
+                break
+        
+        # If no method found exactly 4 corners, use the one with most corners
+        if len(best_corners) != 4:
+            max_corners = 0
+            for method_name, corners in methods_results:
+                if len(corners) > max_corners:
+                    max_corners = len(corners)
+                    best_corners = corners
+                    best_method = method_name
+        
+        if self.debug_mode:
+            print(f"Selected {best_method} method with {len(best_corners)} corners")
         
         # If we have exactly 4 corners, order them
-        if len(corners) == 4:
-            ordered_corners = self.order_corners(corners)
-            return ordered_corners, method
+        if len(best_corners) == 4:
+            ordered_corners = self.order_corners(best_corners)
+            return ordered_corners, best_method
         else:
-            return corners, method
+            return best_corners, best_method
     
     def calculate_perspective_transform(self, corners, target_size=(800, 600)):
         """
@@ -288,7 +369,7 @@ class NoteCornerDetector:
         Returns:
             Matplotlib figure
         """
-        fig, axes = plt.subplots(1, 2, figsize=(15, 8))
+        fig, axes = plt.subplots(1, 3, figsize=(18, 8))
         
         # Original image with corners
         axes[0].imshow(image)
@@ -315,6 +396,12 @@ class NoteCornerDetector:
         axes[1].set_title('Preprocessed Image')
         axes[1].axis('off')
         
+        # Edge detection visualization
+        edges = cv2.Canny(preprocessed, 50, 150)
+        axes[2].imshow(edges, cmap='gray')
+        axes[2].set_title('Edge Detection')
+        axes[2].axis('off')
+        
         plt.tight_layout()
         return fig
     
@@ -330,6 +417,7 @@ class NoteCornerDetector:
             Dictionary with results
         """
         print(f"Processing image: {image_path}")
+        print(f"Using OpenCV-based analytical corner detection")
         
         # Load image
         image = self.load_image(image_path)
@@ -364,7 +452,7 @@ class NoteCornerDetector:
             fig = self.visualize_corners(image, corners, method)
             
             # Save visualization
-            output_path = image_path.rsplit('.', 1)[0] + '_corner_detection.png'
+            output_path = image_path.rsplit('.', 1)[0] + '_opencv_corner_detection.png'
             fig.savefig(output_path, dpi=300, bbox_inches='tight')
             print(f"\nVisualization saved to: {output_path}")
             
@@ -376,14 +464,15 @@ class NoteCornerDetector:
             'method': method,
             'perspective_matrix': perspective_matrix,
             'corrected_image': corrected_image,
-            'image_shape': image.shape
+            'image_shape': image.shape,
+            'detector_type': 'opencv'
         }
 
 
 def main():
-    """Main function to run the corner detector."""
+    """Main function to run the OpenCV corner detector."""
     parser = argparse.ArgumentParser(
-        description='Detect corners in note paper images for perspective correction'
+        description='Detect corners in note paper images using OpenCV (analytical approach)'
     )
     parser.add_argument('image_path', help='Path to the input image')
     parser.add_argument('--debug', action='store_true',
@@ -395,7 +484,7 @@ def main():
     
     try:
         # Create detector
-        detector = NoteCornerDetector(debug_mode=args.debug)
+        detector = NoteCornerDetectorOpenCV(debug_mode=args.debug)
         
         # Process image
         results = detector.process_image(
@@ -404,6 +493,7 @@ def main():
         )
         
         print("\nProcessing completed successfully!")
+        print(f"Detector type: {results['detector_type']}")
         
     except Exception as e:
         print(f"Error: {e}")

@@ -116,6 +116,69 @@ Processing completed successfully!
 - **Memory issues**: The script automatically resizes large images
 - **Installation errors**: Ensure you have Python 3.7+ and pip installed
 
+## Note Corner Detector
+
+The project includes two specialized corner detection scripts, each optimized for different approaches:
+
+### 1. OpenCV-Based Corner Detector (`note_corner_detector_opencv.py`)
+
+Uses analytical computer vision techniques with OpenCV for robust corner detection without external dependencies.
+
+**Features:**
+- **Harris Corner Detection**: Uses OpenCV's `goodFeaturesToTrack` for robust corner detection
+- **Contour Analysis**: Finds document boundaries and approximates to polygons
+- **Edge-Based Detection**: Uses Canny edge detection and Hough Line Transform
+- **Hybrid Methods**: Combines multiple techniques for optimal results
+- **Local Processing**: No external API dependencies, works offline
+
+**Usage:**
+```bash
+# Basic usage
+python note_corner_detector_opencv.py image.jpg
+
+# With debug output
+python note_corner_detector_opencv.py image.jpg --debug
+
+# Skip visualization
+python note_corner_detector_opencv.py image.jpg --no-viz
+```
+
+### 2. Google Cloud AI Corner Detector (`note_corner_detector_google_ai.py`)
+
+Leverages Google Cloud AI Vision API for advanced document analysis and corner detection through cloud-based AI services.
+
+**Features:**
+- **Document Text Detection**: Identifies document boundaries from text annotations
+- **Object Localization**: Detects document-like objects in images
+- **Web Detection**: Additional context from web-based image analysis
+- **Cloud Processing**: Offloads computation to Google's AI infrastructure
+- **Advanced AI**: Uses Google's state-of-the-art computer vision models
+
+**Usage:**
+```bash
+# Basic usage (requires API key)
+python note_corner_detector_google_ai.py image.jpg --api-key YOUR_API_KEY
+
+# With custom endpoint
+python note_corner_detector_google_ai.py image.jpg --api-key YOUR_API_KEY --api-endpoint CUSTOM_URL
+
+# With debug output
+python note_corner_detector_google_ai.py image.jpg --api-key YOUR_API_KEY --debug
+
+# Skip visualization
+python note_corner_detector_google_ai.py image.jpg --api-key YOUR_API_KEY --no-viz
+```
+
+
+
+### Common Features Across Both Corner Detector Scripts
+
+- Automatic corner detection and ordering
+- Perspective transform calculation
+- Visualization of detected corners
+- Support for various image formats
+- Debug mode for detailed output
+
 ## License
 
 This project is open source and available under the MIT License.
