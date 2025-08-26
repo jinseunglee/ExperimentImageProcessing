@@ -1,0 +1,13 @@
+# Google Cloud AI Vision API Key Template
+# 
+# 1. Copy this file to api_key.txt
+# 2. Replace YOUR_API_KEY_HERE with your actual Google Cloud AI API key
+# 3. The api_key.txt file is already in .gitignore and won't be committed
+#
+# Example:
+# AIzaSyCcE4V-zY-DDGk7CiVUlVbS2X-U0yEyxqM
+#
+# Your API key should look similar to the example above
+# Get your API key from: https://console.cloud.google.com/apis/credentials
+
+YOUR_API_KEY_HERE
