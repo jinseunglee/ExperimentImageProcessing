@@ -33,6 +33,12 @@ example_note_paper_color_analysis.png
 *.bmp
 *.tiff
 
+# API Keys and Secrets
+api_key.txt
+*.key
+*.pem
+secrets/
+
 # System Files
 .DS_Store
 .DS_Store?

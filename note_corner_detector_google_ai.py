@@ -4,6 +4,9 @@ Note Corner Detector - Google Cloud AI Version
 
 This script detects corners in note paper images using Google Cloud AI Vision API.
 It provides advanced document analysis and corner detection through cloud-based AI services.
+
+Note: The default API key provided is for demonstration purposes only and may not work.
+For production use, please provide your own valid Google Cloud AI API key.
 """
 
 import cv2
@@ -18,21 +21,64 @@ from typing import Optional, Tuple, List
 
 
 class NoteCornerDetectorGoogleAI:
-    def __init__(self, api_key: str, api_endpoint: str = None, debug_mode: bool = False):
+    def __init__(self, api_key: str = None, api_endpoint: str = None, debug_mode: bool = False):
         """
         Initialize the Google AI-based corner detector.
         
         Args:
-            api_key (str): Google Cloud AI API key
+            api_key (str): Google Cloud AI API key (if None, reads from api_key.txt)
             api_endpoint (str): Google Cloud AI API endpoint URL
             debug_mode (bool): Enable debug output and visualization
         """
-        self.api_key = api_key
-        self.api_endpoint = api_endpoint or "https://vision.googleapis.com/v1/images:annotate"
+        # Set debug mode first
         self.debug_mode = debug_mode
         
+        # Load API key from file if not provided
+        if api_key is None:
+            api_key = self._load_api_key_from_file()
+        
+        self.api_key = api_key
+        self.api_endpoint = api_endpoint or "https://vision.googleapis.com/v1/images:annotate"
+        
         if not self.api_key:
-            raise ValueError("Google Cloud AI API key is required")
+            raise ValueError("Google Cloud AI API key is required. Please create api_key.txt file or provide via --api-key")
+        
+        # Warn if using default demo API key
+        if self.api_key == "AIzaSyCcE4V-zY-DDGk7CiVUlVbS2X-U0yEyxqM":
+            if self.debug_mode:
+                print("Warning: Using default demo API key. This may not work for production use.")
+                print("For production use, please update api_key.txt with your own valid Google Cloud AI API key.")
+    
+    def _load_api_key_from_file(self) -> str:
+        """
+        Load API key from api_key.txt file.
+        
+        Returns:
+            API key string from file
+            
+        Raises:
+            FileNotFoundError: If api_key.txt doesn't exist
+            ValueError: If api_key.txt is empty or invalid
+        """
+        api_key_file = "api_key.txt"
+        
+        if not os.path.exists(api_key_file):
+            raise FileNotFoundError(f"API key file not found: {api_key_file}")
+        
+        try:
+            with open(api_key_file, 'r') as f:
+                api_key = f.read().strip()
+            
+            if not api_key:
+                raise ValueError(f"API key file {api_key_file} is empty")
+            
+            if self.debug_mode:
+                print(f"Loaded API key from {api_key_file}")
+            
+            return api_key
+            
+        except Exception as e:
+            raise ValueError(f"Error reading API key from {api_key_file}: {e}")
     
     def load_image(self, image_path):
         """Load and preprocess the image."""
@@ -625,10 +671,10 @@ class NoteCornerDetectorGoogleAI:
 def main():
     """Main function to run the Google AI corner detector."""
     parser = argparse.ArgumentParser(
-        description='Detect corners in note paper images using Google Cloud AI Vision API'
+        description='Detect corners in note paper images using Google Cloud AI Vision API (reads API key from api_key.txt by default)'
     )
     parser.add_argument('image_path', help='Path to the input image')
-    parser.add_argument('--api-key', required=True, help='Google Cloud AI API key')
+    parser.add_argument('--api-key', help='Google Cloud AI API key (if not provided, reads from api_key.txt)')
     parser.add_argument('--api-endpoint', help='Google Cloud AI API endpoint URL (optional)')
     parser.add_argument('--debug', action='store_true',
                        help='Enable debug mode with verbose output')
