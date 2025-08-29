@@ -1,0 +1,16 @@
+# Requirements for DocAligner Corner Detector
+# Install with: pip install -r requirements_docaligner.txt
+
+# Core dependencies
+opencv-python>=4.5.0
+numpy>=1.19.0
+matplotlib>=3.3.0
+
+# DocAligner library
+# Install from PyPI
+docaligner-docsaid>=1.1.0
+
+# Alternative: If DocAligner is not available on PyPI, you may need to install from source:
+# git clone https://github.com/username/docaligner.git
+# cd docaligner
+# pip install -e .

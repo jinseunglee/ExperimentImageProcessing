@@ -34,10 +34,14 @@ example_note_paper_color_analysis.png
 *.tiff
 
 # API Keys and Secrets
-api_key.txt
 *.key
 *.pem
 secrets/
+
+# OAuth 2.0 Credentials
+oauth_credentials.json
+*credentials*.json
+*.json.key
 
 # System Files
 .DS_Store

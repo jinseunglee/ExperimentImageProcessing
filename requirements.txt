@@ -4,3 +4,8 @@ scikit-learn>=1.0.0
 matplotlib>=3.5.0
 Pillow>=8.0.0
 requests>=2.25.0
+google-auth>=2.0.0
+google-auth-oauthlib>=1.0.0
+
+# DocAligner corner detector (optional)
+docaligner-docsaid>=1.1.0  # Install from PyPI
